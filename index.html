@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}СберБанк — Надёжный банк для жизни{% endblock %}
+{% block content %}
+<div class="landing">
+    <header class="landing-header">
+        <div class="landing-nav">
+            <div class="logo-wrap">
+                <div class="logo-icon-lg">С</div>
+                <span class="logo-text">Сбер</span>
+            </div>
+            <div class="landing-nav-links">
+                <a href="{{ url_for('login') }}" class="btn-outline">Войти</a>
+                <a href="{{ url_for('register') }}" class="btn-green">Открыть счёт</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-badge">🏆 Банк #1 в России</div>
+            <h1 class="hero-title">Финансы под<br><span class="green-text">вашим контролем</span></h1>
+            <p class="hero-sub">Управляйте счетами, делайте переводы и контролируйте расходы — всё в одном месте</p>
+            <div class="hero-cta">
+                <a href="{{ url_for('register') }}" class="btn-hero">Начать бесплатно</a>
+                <span class="hero-hint">Приветственный бонус <strong>10 000 ₽</strong></span>
+            </div>
+        </div>
+        <div class="hero-card">
+            <div class="demo-card">
+                <div class="demo-card-top">
+                    <div class="demo-logo">С</div>
+                    <span>СберКарта</span>
+                </div>
+                <div class="demo-balance">128 450 <span>₽</span></div>
+                <div class="demo-number">•••• •••• •••• 4891</div>
+                <div class="demo-bottom">
+                    <span>Иванов И.И.</span>
+                    <span>12/28</span>
+                </div>
+            </div>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <span class="stat-val green">+12 500 ₽</span>
+                    <span class="stat-label">Доход за месяц</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="stat-val red">−4 230 ₽</span>
+                    <span class="stat-label">Расходы</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon green-bg">💳</div>
+                <h3>Несколько счетов</h3>
+                <p>Открывайте текущие, сберегательные и кредитные счета в любом количестве</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon green-bg">⚡</div>
+                <h3>Быстрые переводы</h3>
+                <p>Мгновенные переводы между счетами по номеру счёта</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon green-bg">📊</div>
+                <h3>История операций</h3>
+                <p>Полная история всех транзакций с фильтрацией по счетам</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon green-bg">🔒</div>
+                <h3>Безопасность</h3>
+                <p>Надёжная защита данных и шифрование всех операций</p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="landing-footer">
+        <p>© 2024 ПАО СберБанк. Демо-версия для обучения.</p>
+    </footer>
+</div>
+{% endblock %}

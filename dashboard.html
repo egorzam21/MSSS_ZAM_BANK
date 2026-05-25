@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}Главная — СберБанк{% endblock %}
+{% block content %}
+<div class="page-wrap">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Добрый день, {{ current_user.full_name.split()[0] }}!</h1>
+            <p class="page-sub">{{ now.strftime('%d %B %Y') if now else '' }} · Всё под контролем</p>
+        </div>
+        <a href="{{ url_for('transfer') }}" class="btn-green">
+            <svg viewBox="0 0 24 24" width="16" height="16"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            Новый перевод
+        </a>
+    </div>
+
+    <!-- Total balance -->
+    <div class="total-card">
+        <div class="total-left">
+            <div class="total-label">Общий баланс</div>
+            <div class="total-amount">{{ "{:,.2f}".format(total).replace(',', ' ') }} <span>₽</span></div>
+            <div class="total-accounts">{{ accounts|length }} счёт{{ 'а' if accounts|length in [2,3,4] else 'ов' if accounts|length >= 5 else '' }}</div>
+        </div>
+        <div class="total-right">
+            <div class="total-chart" id="balanceChart">
+                {% for acc in accounts %}
+                <div class="chart-segment" style="flex: {{ acc.balance }}" title="{{ acc.account_type }}: {{ '{:,.0f}'.format(acc.balance) }} ₽"></div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Accounts -->
+    <div class="section-header">
+        <h2>Мои счета</h2>
+        <a href="{{ url_for('accounts') }}" class="section-link">Все счета →</a>
+    </div>
+    <div class="accounts-row">
+        {% set type_data = {'checking': ('💳', 'Текущий счёт', '#21A038'), 'savings': ('🐷', 'Сберегательный', '#007AFF'), 'credit': ('💰', 'Кредитный', '#FF6B35')} %}
+        {% for acc in accounts %}
+        {% set td = type_data.get(acc.account_type, ('💳', acc.account_type, '#21A038')) %}
+        <div class="account-mini-card" style="--accent: {{ td[2] }}">
+            <div class="acc-mini-top">
+                <span class="acc-icon">{{ td[0] }}</span>
+                <span class="acc-type">{{ td[1] }}</span>
+            </div>
+            <div class="acc-mini-balance">{{ "{:,.2f}".format(acc.balance).replace(',', ' ') }} ₽</div>
+            <div class="acc-mini-number">{{ acc.account_number[:4] }} •••• •••• {{ acc.account_number[-4:] }}</div>
+        </div>
+        {% endfor %}
+        {% if accounts|length < 5 %}
+        <a href="{{ url_for('accounts') }}" class="account-mini-card add-card">
+            <div class="add-icon">+</div>
+            <span>Открыть счёт</span>
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Recent transactions -->
+    <div class="section-header">
+        <h2>Последние операции</h2>
+        <a href="{{ url_for('history') }}" class="section-link">Вся история →</a>
+    </div>
+    <div class="tx-list">
+        {% if transactions %}
+        {% for tx in transactions %}
+        {% set is_income = tx.to_account_id in (accounts | map(attribute='id') | list) and tx.transaction_type != 'transfer' or (tx.transaction_type == 'transfer' and tx.to_account_id in (accounts | map(attribute='id') | list) and tx.from_account_id not in (accounts | map(attribute='id') | list)) %}
+        <div class="tx-item">
+            <div class="tx-icon {{ 'tx-in' if tx.transaction_type == 'deposit' else 'tx-out' if tx.from_account_id in (accounts | map(attribute='id') | list) else 'tx-in' }}">
+                {% if tx.transaction_type == 'deposit' %}⬇{% elif tx.transaction_type == 'transfer' %}↔{% else %}⬆{% endif %}
+            </div>
+            <div class="tx-details">
+                <div class="tx-desc">{{ tx.description }}</div>
+                <div class="tx-date">{{ tx.created_at.strftime('%d.%m.%Y %H:%M') }} · {{ tx.reference }}</div>
+            </div>
+            <div class="tx-amount {{ 'amount-in' if tx.transaction_type == 'deposit' or (tx.to_account_id in (accounts | map(attribute='id') | list) and tx.from_account_id not in (accounts | map(attribute='id') | list)) else 'amount-out' }}">
+                {% if tx.transaction_type == 'deposit' %}+{% elif tx.from_account_id in (accounts | map(attribute='id') | list) %}−{% else %}+{% endif %}{{ "{:,.2f}".format(tx.amount).replace(',', ' ') }} ₽
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <p>Операций пока нет</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+// Color segments
+const colors = ['#21A038', '#007AFF', '#FF6B35', '#9B59B6', '#F39C12'];
+document.querySelectorAll('.chart-segment').forEach((el, i) => {
+    el.style.background = colors[i % colors.length];
+});
+</script>
+{% endblock %}
