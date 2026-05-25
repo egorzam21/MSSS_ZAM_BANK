@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% block title %}Перевод — СберБанк{% endblock %}
+{% block content %}
+<div class="page-wrap">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Перевод средств</h1>
+            <p class="page-sub">Моментальный перевод по номеру счёта</p>
+        </div>
+    </div>
+
+    <div class="transfer-layout">
+        <div class="transfer-card">
+            <form method="POST" action="{{ url_for('transfer') }}" id="transferForm">
+                <!-- From account -->
+                <div class="form-section">
+                    <label class="form-label">Счёт списания</label>
+                    <div class="account-select-group">
+                        {% set type_data = {'checking': ('💳', 'Текущий счёт'), 'savings': ('🐷', 'Сберегательный'), 'credit': ('💰', 'Кредитный')} %}
+                        {% for acc in accounts %}
+                        {% set td = type_data.get(acc.account_type, ('💳', acc.account_type)) %}
+                        <label class="acc-radio-card {% if loop.first %}selected{% endif %}">
+                            <input type="radio" name="from_account" value="{{ acc.id }}" {% if loop.first %}checked{% endif %} onchange="updateBalance({{ acc.balance }})">
+                            <div class="acc-radio-content">
+                                <span class="acc-radio-icon">{{ td[0] }}</span>
+                                <div>
+                                    <div class="acc-radio-type">{{ td[1] }}</div>
+                                    <div class="acc-radio-num">{{ acc.account_number[-8:] }}</div>
+                                </div>
+                                <div class="acc-radio-bal">{{ "{:,.0f}".format(acc.balance).replace(',', ' ') }} ₽</div>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- To account -->
+                <div class="form-section">
+                    <label class="form-label">Номер счёта получателя</label>
+                    <div class="input-with-check">
+                        <input type="text" name="to_account_number" id="toAccount"
+                               placeholder="40810000000000000000" maxlength="20"
+                               oninput="checkAccount(this.value)"
+                               autocomplete="off">
+                        <div class="account-verify" id="accountVerify"></div>
+                    </div>
+                </div>
+
+                <!-- Amount -->
+                <div class="form-section">
+                    <label class="form-label">Сумма перевода</label>
+                    <div class="amount-input-wrap">
+                        <input type="number" name="amount" id="amount" placeholder="0.00" min="0.01" step="0.01">
+                        <span class="currency-badge">₽</span>
+                    </div>
+                    <div class="quick-amounts">
+                        <button type="button" onclick="setAmount(100)">100 ₽</button>
+                        <button type="button" onclick="setAmount(500)">500 ₽</button>
+                        <button type="button" onclick="setAmount(1000)">1 000 ₽</button>
+                        <button type="button" onclick="setAmount(5000)">5 000 ₽</button>
+                        <button type="button" onclick="setAmount(10000)">10 000 ₽</button>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="form-section">
+                    <label class="form-label">Назначение платежа <span class="optional">(необязательно)</span></label>
+                    <input type="text" name="description" placeholder="Например: За аренду, Долг другу..." maxlength="200">
+                </div>
+
+                <button type="submit" class="btn-submit" id="submitBtn">
+                    <span>Перевести</span>
+                    <svg viewBox="0 0 24 24" width="18" height="18"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>
+                </button>
+            </form>
+        </div>
+
+        <!-- Info panel -->
+        <div class="transfer-info">
+            <div class="info-card">
+                <h3>💡 Как перевести</h3>
+                <ol class="info-steps">
+                    <li>Выберите счёт списания</li>
+                    <li>Введите номер счёта получателя</li>
+                    <li>Укажите сумму перевода</li>
+                    <li>Нажмите «Перевести»</li>
+                </ol>
+            </div>
+            <div class="info-card">
+                <h3>🔒 Безопасность</h3>
+                <p>Все переводы выполняются мгновенно и защищены шифрованием</p>
+            </div>
+            <div class="info-card highlight-card">
+                <h3>Ваши счета</h3>
+                {% for acc in accounts %}
+                <div class="your-acc-item" onclick="copyAndFill('{{ acc.account_number }}')">
+                    <span>{{ acc.account_type == 'checking' and '💳' or acc.account_type == 'savings' and '🐷' or '💰' }}</span>
+                    <div>
+                        <div class="your-acc-num">{{ acc.account_number }}</div>
+                        <div class="your-acc-bal">{{ "{:,.0f}".format(acc.balance).replace(',', ' ') }} ₽</div>
+                    </div>
+                    <button type="button" class="copy-mini">📋</button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+let checkTimeout;
+
+function checkAccount(val) {
+    clearTimeout(checkTimeout);
+    const el = document.getElementById('accountVerify');
+    if (val.length < 10) { el.innerHTML = ''; return; }
+    el.innerHTML = '<span class="checking">Проверка...</span>';
+    checkTimeout = setTimeout(() => {
+        fetch('/api/check-account', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({number: val})
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.found) {
+                el.innerHTML = `<span class="verified">✓ ${d.owner} · ${d.type}</span>`;
+            } else {
+                el.innerHTML = '<span class="not-found">✗ Счёт не найден</span>';
+            }
+        });
+    }, 500);
+}
+
+function setAmount(val) {
+    document.getElementById('amount').value = val;
+    document.querySelectorAll('.quick-amounts button').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+}
+
+function updateBalance(bal) {
+    // Update UI if needed
+}
+
+function copyAndFill(num) {
+    document.getElementById('toAccount').value = num;
+    checkAccount(num);
+    showToast('Номер вставлен');
+}
+
+// Highlight selected radio
+document.querySelectorAll('.acc-radio-card input').forEach(inp => {
+    inp.addEventListener('change', () => {
+        document.querySelectorAll('.acc-radio-card').forEach(c => c.classList.remove('selected'));
+        inp.closest('.acc-radio-card').classList.add('selected');
+    });
+});
+</script>
+{% endblock %}
